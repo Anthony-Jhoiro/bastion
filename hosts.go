@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
+	"github.com/Ullaakut/nmap/v3"
+	"log"
 	"os"
-	"os/exec"
-	"regexp"
-	"strings"
+	"time"
 )
 
 const cacheFileName = "/home/anthony/.bastion-data.json"
@@ -21,32 +21,46 @@ func (h Host) Title() string       { return h.Name }
 func (h Host) Description() string { return h.Ip }
 func (h Host) FilterValue() string { return h.Name }
 
-var NmapLogRegex = regexp.MustCompile("Nmap scan report for (.*) \\((.*)\\)")
+func ListHostsInNetwork(ipRanges []string) ([]Host, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
-func ListHostsInNetwork(ipRange string) ([]Host, error) {
-	cmd := exec.Command("/usr/bin/nmap", "-sn", ipRange)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-
-	err := cmd.Run()
+	scanner, err := nmap.NewScanner(
+		ctx,
+		nmap.WithTargets(ipRanges...),
+		nmap.WithPorts("22"),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	logs := strings.Split(out.String(), "\n")
+	result, warnings, err := scanner.Run()
+	if len(*warnings) > 0 {
+		log.Printf("run finished with warnings: %s\n", *warnings) // Warnings are non-critical errors from nmap.
+	}
+	if err != nil {
+		log.Fatalf("unable to run nmap scan: %v", err)
+	}
 
-	hosts := make([]Host, 0)
+	hosts := make([]Host, 0, len(result.Hosts))
 
-	for _, logLine := range logs {
-		matches := NmapLogRegex.FindStringSubmatch(logLine)
-		if matches != nil {
-			hosts = append(hosts, Host{
-				Name: matches[1],
-				Ip:   matches[2],
-				Up:   true,
-			})
+	for _, nmapHost := range result.Hosts {
+		if len(nmapHost.Addresses) == 0 {
+			continue
 		}
 
+		host := Host{
+			Ip: nmapHost.Addresses[0].Addr,
+			Up: true,
+		}
+
+		if len(nmapHost.Hostnames) == 0 {
+			host.Name = "Unknown"
+		} else {
+			host.Name = nmapHost.Hostnames[0].Name
+		}
+
+		hosts = append(hosts, host)
 	}
 
 	WriteHostsInCache(hosts)

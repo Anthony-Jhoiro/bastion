@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 	"os"
+	"os/exec"
 )
 
 var (
@@ -16,7 +17,6 @@ var (
 	successKeyword = termenv.Style{}.Foreground(color("#98C379")).Styled
 	infoKeyword    = termenv.Style{}.Foreground(color("#61AFEF")).Styled
 	heading        = termenv.Style{}.Foreground(color("#61AFEF")).Styled
-	help           = termenv.Style{}.Foreground(color("241")).Styled
 )
 
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
@@ -40,6 +40,7 @@ type model struct {
 	hosts            list.Model
 	width            int
 	height           int
+	selectedHost     Host
 }
 
 func (m model) Init() tea.Cmd {
@@ -50,6 +51,18 @@ func (m model) Init() tea.Cmd {
 	)
 }
 
+type sshConnectionFinishedMsg struct {
+	err error
+}
+
+func startSshConnection(host Host) tea.Cmd {
+	c := exec.Command("/usr/bin/ssh", host.Ip)
+
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		return sshConnectionFinishedMsg{err}
+	})
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -57,6 +70,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c", "esc":
 			m.quitting = true
 			return m, tea.Quit
+
+		case "enter":
+			if m.hostsFetched {
+				i, ok := m.hosts.SelectedItem().(Host)
+				if ok {
+					m.selectedHost = i
+				}
+				return m, startSshConnection(i)
+			}
 		}
 
 	case ConnectionStatus:
@@ -86,6 +108,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.hostsFetched {
 			h, _ := docStyle.GetFrameSize()
 			m.hosts.SetSize(msg.Width-h, 16)
+		}
+
+	case sshConnectionFinishedMsg:
+		if msg.err != nil {
+			m.error = msg.err
+			return m, tea.Quit
 		}
 
 	default:
@@ -160,7 +188,7 @@ type ListHostsResponse struct {
 }
 
 func listHostsInNetwork() tea.Msg {
-	hosts, err := ListHostsInNetwork("10.0.0.0/24")
+	hosts, err := ListHostsInNetwork([]string{"10.0.0.0/24"})
 	if err != nil {
 		return ListHostsResponse{
 			err: err,

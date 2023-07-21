@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -27,15 +26,6 @@ func IsConnectedToVPN() bool {
 
 func ConnectToVPN() error {
 	cmd := exec.Command("/usr/bin/nmcli", "c", "up", VpnName)
-	return cmd.Run()
-}
-
-func StartSshConnection(host string) error {
-	cmd := exec.Command("/usr/bin/ssh", host)
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-
 	return cmd.Run()
 }
 
