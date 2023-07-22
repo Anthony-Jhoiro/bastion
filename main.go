@@ -36,11 +36,8 @@ type model struct {
 	connectionStatus ConnectionStatus
 	spinner          spinner.Model
 	error            error
-	hostsFetched     bool
-	hosts            list.Model
-	width            int
-	height           int
-	selectedHost     Host
+
+	hostSelectorModel HostSelectorModel
 }
 
 func (m model) Init() tea.Cmd {
@@ -70,15 +67,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c", "esc":
 			m.quitting = true
 			return m, tea.Quit
-
-		case "enter":
-			if m.hostsFetched {
-				i, ok := m.hosts.SelectedItem().(Host)
-				if ok {
-					m.selectedHost = i
-				}
-				return m, startSshConnection(i)
-			}
 		}
 
 	case ConnectionStatus:
@@ -87,44 +75,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 		if m.connectionStatus == Connected {
+			m.hostSelectorModel.hostsFetching = true
 			return m, listHostsInNetwork
 		}
 		return m, nil
 
-	case ListHostsResponse:
-		if msg.err != nil {
-			m.error = msg.err
-			return m, nil
-		}
-		h, _ := docStyle.GetFrameSize()
-		m.hosts = list.New(msg.hosts, list.NewDefaultDelegate(), m.width-h, 16)
-		m.hostsFetched = true
-
-		return m, nil
-
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		if m.hostsFetched {
-			h, _ := docStyle.GetFrameSize()
-			m.hosts.SetSize(msg.Width-h, 16)
-		}
-
-	case sshConnectionFinishedMsg:
-		if msg.err != nil {
-			m.error = msg.err
-			return m, tea.Quit
-		}
-
-	default:
+	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
+		m.hostSelectorModel.spinner = m.spinner
+
 		return m, cmd
 	}
 
-	if m.hostsFetched {
-		var cmd tea.Cmd
-		m.hosts, cmd = m.hosts.Update(msg)
+	m2, cmd := m.hostSelectorModel.Update(msg)
+	m.hostSelectorModel = m2.(HostSelectorModel)
+
+	if cmd != nil {
 		return m, cmd
 	}
 
@@ -153,12 +120,9 @@ func (m model) View() string {
 	if m.error != nil {
 		return buff + errorKeyword(fmt.Sprintf("%vError: %v\n\n", defaultPrefix, m.error))
 	}
+	buff += m.hostSelectorModel.View()
 
-	if !m.hostsFetched {
-		return buff + fmt.Sprintf("%vSearching for hosts\n", loadingPrefix)
-	} else {
-		return buff + m.hosts.View()
-	}
+	return buff
 }
 
 func main() {
@@ -167,8 +131,9 @@ func main() {
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("#61AFEF"))
 
 	if _, err := tea.NewProgram(model{
-		connectionStatus: Connecting,
-		spinner:          s,
+		connectionStatus:  Connecting,
+		spinner:           s,
+		hostSelectorModel: NewHostSelectorModel(s),
 	}, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
@@ -182,9 +147,17 @@ func ensureConnectedToVpn() tea.Msg {
 	return Connected
 }
 
+type ListHostsResponseSource int
+
+const (
+	Cache         ListHostsResponseSource = iota
+	AutoDiscovery                         = iota
+)
+
 type ListHostsResponse struct {
-	hosts []list.Item
-	err   error
+	hosts  []list.Item
+	source ListHostsResponseSource
+	err    error
 }
 
 func listHostsInNetwork() tea.Msg {
@@ -201,8 +174,9 @@ func listHostsInNetwork() tea.Msg {
 	}
 
 	return ListHostsResponse{
-		hosts: lst,
-		err:   err,
+		hosts:  lst,
+		err:    err,
+		source: AutoDiscovery,
 	}
 }
 
@@ -217,6 +191,7 @@ func listHostsInNetworkFromCache() tea.Msg {
 	}
 
 	return ListHostsResponse{
-		hosts: lst,
+		hosts:  lst,
+		source: Cache,
 	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/Ullaakut/nmap/v3"
 	"log"
 	"os"
@@ -17,7 +18,12 @@ type Host struct {
 	Up   bool
 }
 
-func (h Host) Title() string       { return h.Name }
+func (h Host) Title() string {
+	if h.Up {
+		return fmt.Sprintf("%v ✅", h.Name)
+	}
+	return h.Name
+}
 func (h Host) Description() string { return h.Ip }
 func (h Host) FilterValue() string { return h.Name }
 
@@ -91,5 +97,11 @@ func GetHostsFromCache() []Host {
 	if err != nil {
 		return nil
 	}
+
+	for i, host := range hosts {
+		host.Up = false
+		hosts[i] = host
+	}
+
 	return hosts
 }
