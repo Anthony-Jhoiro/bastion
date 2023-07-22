@@ -3,6 +3,8 @@ package main
 import (
 	"bastion/colors"
 	"bastion/hosts"
+	"bastion/hosts/discovery"
+	"bastion/hosts/discovery/nmap"
 	"bastion/vpn"
 	"fmt"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -12,6 +14,8 @@ import (
 )
 
 var hydraBanner = colors.Heading("  ______           _   _             \n  | ___ \\         | | (_)            \n  | |_/ / __ _ ___| |_ _  ___  _ __  \n  | ___ \\/ _` / __| __| |/ _ \\| '_ \\ \n  | |_/ / (_| \\__ \\ |_| | (_) | | | |\n  \\____/ \\__,_|___/\\__|_|\\___/|_| |_|\n                                     ")
+
+const cacheFileName = "/home/anthony/.bastion-data.json"
 
 type model struct {
 	quitting bool
@@ -86,7 +90,16 @@ func main() {
 		spinner: appSpinner,
 		children: []tea.Model{
 			vpn.NewVpnModel(appSpinner),
-			hosts.NewHostSelectorModel(appSpinner),
+			hosts.NewHostSelectorModel(
+				appSpinner,
+				discovery.Discovery{
+					Strategy: nmap.AutoDiscovery{
+						Networks: []string{"10.0.0.0/24", "10.0.1.0/24"},
+						Ports:    []string{"22"},
+					},
+					CacheLocation: cacheFileName,
+				},
+			),
 		},
 	}, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error running program:", err)
