@@ -1,6 +1,8 @@
-package main
+package hosts
 
 import (
+	"bastion/colors"
+	"bastion/vpn"
 	"fmt"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -11,22 +13,22 @@ import (
 
 type HostSelectorModel struct {
 	tea.Model
-	spinner       *spinner.Model
-	error         error
-	hostsFetched  bool
-	hostsFetching bool
-	hosts         list.Model
-	selectedHost  Host
+	spinner        *spinner.Model
+	error          error
+	hostsFetched   bool
+	hostsFetching  bool
+	hosts          list.Model
+	selectedHost   Host
+	readyToConnect bool
 
 	width  int
 	height int
 }
 
 func NewHostSelectorModel(s *spinner.Model) HostSelectorModel {
-	marginX, _ := docStyle.GetFrameSize()
 	return HostSelectorModel{
 		spinner: s,
-		hosts:   list.New([]list.Item{}, list.NewDefaultDelegate(), 30-marginX, 16),
+		hosts:   list.New([]list.Item{}, list.NewDefaultDelegate(), 30, 16),
 	}
 }
 
@@ -56,8 +58,9 @@ func WithDelay(duration time.Duration, msg tea.Msg) tea.Cmd {
 type StartDiscoveryMsg struct {
 }
 
-func (m HostSelectorModel) onConnectionEstablished(msg ConnectionEstablished) (tea.Model, tea.Cmd) {
+func (m HostSelectorModel) onConnectionEstablished() (tea.Model, tea.Cmd) {
 	m.hostsFetching = true
+	m.readyToConnect = true
 	return m, listHostsInNetwork
 }
 
@@ -77,8 +80,7 @@ func (m HostSelectorModel) onListHostsResponse(msg ListHostsResponse) (tea.Model
 		m.error = msg.err
 		return m, nil
 	}
-	marginX, _ := docStyle.GetFrameSize()
-	m.hosts = list.New(msg.hosts, list.NewDefaultDelegate(), m.width-marginX, 16)
+	m.hosts = list.New(msg.hosts, list.NewDefaultDelegate(), m.width, 16)
 	m.hostsFetched = true
 
 	if msg.source == AutoDiscovery {
@@ -104,8 +106,8 @@ func (m HostSelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ListHostsResponse:
 		return m.onListHostsResponse(msg)
 
-	case ConnectionEstablished:
-		return m.onConnectionEstablished(msg)
+	case vpn.ConnectionEstablished:
+		return m.onConnectionEstablished()
 
 	case StartDiscoveryMsg:
 		m.hostsFetching = true
@@ -114,8 +116,7 @@ func (m HostSelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		marginX, marginY := docStyle.GetFrameSize()
-		m.hosts.SetSize(m.width-marginX, 16-marginY)
+		m.hosts.SetSize(m.width, 16)
 
 	case SshConnectionFinishedMsg:
 		return m.onSshConnectionFinishedMsg(msg)
@@ -134,14 +135,18 @@ func (m HostSelectorModel) View() string {
 	buff := ""
 
 	if m.error != nil {
-		buff += errorKeyword(fmt.Sprintf("    [ERROR]: %v\n\n", m.error.Error()))
+		buff += colors.ErrorKeyword(fmt.Sprintf("    [ERROR]: %v\n\n", m.error.Error()))
 	}
 
 	if m.hostsFetching {
 		buff += fmt.Sprintf("  %vLoading hosts in your network \n\n", m.spinner.View())
 	}
 
-	return buff + m.hosts.View()
+	if m.readyToConnect {
+		buff += m.hosts.View()
+	}
+	return buff
+
 }
 
 type ListHostsResponseSource int

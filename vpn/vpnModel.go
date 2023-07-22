@@ -1,9 +1,18 @@
-package main
+package vpn
 
 import (
+	"bastion/colors"
 	"fmt"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+)
+
+type ConnectionStatus = int
+
+const (
+	Connected        ConnectionStatus = iota
+	ConnectionFailed ConnectionStatus = iota
+	Connecting       ConnectionStatus = iota
 )
 
 type VpnModel struct {
@@ -53,13 +62,13 @@ func (m VpnModel) View() string {
 	defaultPrefix := "    "
 
 	if m.connectionStatus == Connecting {
-		return buff + fmt.Sprintf("%vConnecting to %v\n\n", loadingPrefix, infoKeyword(VpnName))
+		return buff + fmt.Sprintf("%vConnecting to %v\n\n", loadingPrefix, colors.InfoKeyword(VpnName))
 	}
 	if m.connectionStatus == ConnectionFailed {
-		return buff + fmt.Sprintf("%vFail to connect to %v\n\n", defaultPrefix, errorKeyword(VpnName))
+		return buff + fmt.Sprintf("%vFail to connect to %v\n\n", defaultPrefix, colors.ErrorKeyword(VpnName))
 	}
 
-	return buff + fmt.Sprintf("%vConnection to %v established\n\n", defaultPrefix, successKeyword(VpnName))
+	return buff + fmt.Sprintf("%vConnection to %v established\n\n", defaultPrefix, colors.SuccessKeyword(VpnName))
 }
 
 func ensureConnectedToVpn() tea.Msg {

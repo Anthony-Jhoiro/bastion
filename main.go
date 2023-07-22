@@ -1,33 +1,17 @@
 package main
 
 import (
+	"bastion/colors"
+	"bastion/hosts"
+	"bastion/vpn"
 	"fmt"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/termenv"
 	"os"
 )
 
-var (
-	color          = termenv.EnvColorProfile().Color
-	errorKeyword   = termenv.Style{}.Foreground(color("#E06C75")).Styled
-	successKeyword = termenv.Style{}.Foreground(color("#98C379")).Styled
-	infoKeyword    = termenv.Style{}.Foreground(color("#61AFEF")).Styled
-	heading        = termenv.Style{}.Foreground(color("#61AFEF")).Styled
-)
-
-var docStyle = lipgloss.NewStyle().Margin(1, 2)
-
-var hydraBanner = heading("  ______           _   _             \n  | ___ \\         | | (_)            \n  | |_/ / __ _ ___| |_ _  ___  _ __  \n  | ___ \\/ _` / __| __| |/ _ \\| '_ \\ \n  | |_/ / (_| \\__ \\ |_| | (_) | | | |\n  \\____/ \\__,_|___/\\__|_|\\___/|_| |_|\n                                     ")
-
-type ConnectionStatus = int
-
-const (
-	Connected        ConnectionStatus = iota
-	ConnectionFailed ConnectionStatus = iota
-	Connecting       ConnectionStatus = iota
-)
+var hydraBanner = colors.Heading("  ______           _   _             \n  | ___ \\         | | (_)            \n  | |_/ / __ _ ___| |_ _  ___  _ __  \n  | ___ \\/ _` / __| __| |/ _ \\| '_ \\ \n  | |_/ / (_| \\__ \\ |_| | (_) | | | |\n  \\____/ \\__,_|___/\\__|_|\\___/|_| |_|\n                                     ")
 
 type model struct {
 	quitting bool
@@ -35,9 +19,6 @@ type model struct {
 	error    error
 
 	children []tea.Model
-
-	vpnModel          VpnModel
-	hostSelectorModel HostSelectorModel
 }
 
 func (m model) Init() tea.Cmd {
@@ -104,8 +85,8 @@ func main() {
 	if _, err := tea.NewProgram(model{
 		spinner: appSpinner,
 		children: []tea.Model{
-			NewVpnModel(appSpinner),
-			NewHostSelectorModel(appSpinner),
+			vpn.NewVpnModel(appSpinner),
+			hosts.NewHostSelectorModel(appSpinner),
 		},
 	}, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error running program:", err)
