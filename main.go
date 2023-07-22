@@ -34,7 +34,7 @@ const (
 type model struct {
 	quitting         bool
 	connectionStatus ConnectionStatus
-	spinner          spinner.Model
+	spinner          *spinner.Model
 	error            error
 
 	hostSelectorModel HostSelectorModel
@@ -82,15 +82,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case spinner.TickMsg:
 		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(msg)
-		m.hostSelectorModel.spinner = m.spinner
-
+		s2, cmd := m.spinner.Update(msg)
+		*m.spinner = s2
 		return m, cmd
 	}
 
 	m2, cmd := m.hostSelectorModel.Update(msg)
 	m.hostSelectorModel = m2.(HostSelectorModel)
-
 	if cmd != nil {
 		return m, cmd
 	}
@@ -130,10 +128,12 @@ func main() {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("#61AFEF"))
 
+	var appSpinner *spinner.Model = &s
+
 	if _, err := tea.NewProgram(model{
 		connectionStatus:  Connecting,
-		spinner:           s,
-		hostSelectorModel: NewHostSelectorModel(s),
+		spinner:           appSpinner,
+		hostSelectorModel: NewHostSelectorModel(appSpinner),
 	}, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)

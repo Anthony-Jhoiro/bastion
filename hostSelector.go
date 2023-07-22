@@ -10,7 +10,7 @@ import (
 
 type HostSelectorModel struct {
 	tea.Model
-	spinner       spinner.Model
+	spinner       *spinner.Model
 	error         error
 	hostsFetched  bool
 	hostsFetching bool
@@ -21,7 +21,7 @@ type HostSelectorModel struct {
 	height int
 }
 
-func NewHostSelectorModel(s spinner.Model) HostSelectorModel {
+func NewHostSelectorModel(s *spinner.Model) HostSelectorModel {
 	marginX, _ := docStyle.GetFrameSize()
 	return HostSelectorModel{
 		spinner: s,
@@ -68,7 +68,6 @@ func (m HostSelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if msg.source == AutoDiscovery {
 			m.hostsFetching = false
-			m.error = fmt.Errorf("send discovery msg at %v", time.Now())
 			return m, WithDelay(5*time.Second, StartDiscoveryMsg{})
 		}
 
