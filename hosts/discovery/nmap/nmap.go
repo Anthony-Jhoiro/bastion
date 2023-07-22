@@ -1,8 +1,8 @@
 package nmap
 
 import (
-	"bastion/hosts/discovery"
 	"context"
+	"github.com/Anthony-Jhoiro/bastion/hosts/discovery"
 	"github.com/Ullaakut/nmap/v3"
 	"log"
 )

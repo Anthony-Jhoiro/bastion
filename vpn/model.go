@@ -1,8 +1,8 @@
 package vpn
 
 import (
-	"bastion/colors"
 	"fmt"
+	"github.com/Anthony-Jhoiro/bastion/colors"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -21,6 +21,7 @@ type model struct {
 	spinner          *spinner.Model
 }
 
+// NewVpnModel creates a model with a connection that defines how to connection to a network
 func NewVpnModel(s *spinner.Model, c Connection) tea.Model {
 	return model{
 		connectionStatus: Connecting,

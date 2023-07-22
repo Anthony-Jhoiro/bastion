@@ -35,7 +35,7 @@ func (c NetworkManagerConnexion) ConnectToVPN() error {
 	return cmd.Run()
 }
 
-func (c NetworkManagerConnexion) EnsureConnectedToVpn() error {
+func (c NetworkManagerConnexion) EnsureConnected() error {
 	if !c.IsConnectedToVPN() {
 		err := c.ConnectToVPN()
 		if err != nil {

@@ -13,6 +13,16 @@ type model struct {
 	children []tea.Model
 }
 
+// NewTemplateModel creates a template. A template handle the state of a spinner that can be shared with multiple models
+// and a list of children that are also  bubbletea models.
+//
+// Each child is rendered in the same order as they are defined. Their `Init` method is called during the template `Init`
+// method.
+//
+// ⚠️ Known bugs ⚠️
+//
+// BUG(Anthony-Jhoiro)::️ children's shouldn't listen for events in a blocking way (for now), that's mean that if a child
+// listen to an event and returns a command, the `Update`method won't be called on other children.
 func NewTemplateModel(s *spinner.Model, children ...tea.Model) tea.Model {
 	return model{
 		spinner:  s,

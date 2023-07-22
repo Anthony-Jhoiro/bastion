@@ -1,7 +1,7 @@
 package hosts
 
 import (
-	"bastion/hosts/discovery"
+	"github.com/Anthony-Jhoiro/bastion/hosts/discovery"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )

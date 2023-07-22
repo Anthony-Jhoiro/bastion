@@ -1,4 +1,4 @@
-module bastion
+module github.com/Anthony-Jhoiro/bastion
 
 go 1.20
 

@@ -1,10 +1,10 @@
 package hosts
 
 import (
-	"bastion/colors"
-	"bastion/hosts/discovery"
-	"bastion/vpn"
 	"fmt"
+	"github.com/Anthony-Jhoiro/bastion/colors"
+	"github.com/Anthony-Jhoiro/bastion/hosts/discovery"
+	"github.com/Anthony-Jhoiro/bastion/vpn"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
