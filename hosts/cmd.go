@@ -6,7 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func (m HostSelectorModel) listHostsInNetwork() tea.Msg {
+func (m model) listHostsInNetwork() tea.Msg {
 	hosts, err := m.discovery.DiscoverHosts()
 	if err != nil {
 		return discovery.ListHostsResponse{
@@ -26,7 +26,7 @@ func (m HostSelectorModel) listHostsInNetwork() tea.Msg {
 	}
 }
 
-func (m HostSelectorModel) listHostsInNetworkFromCache() tea.Msg {
+func (m model) listHostsInNetworkFromCache() tea.Msg {
 	hosts := m.discovery.GetHostsFromCache()
 	if hosts == nil {
 		return nil

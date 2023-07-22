@@ -89,7 +89,7 @@ func main() {
 	if _, err := tea.NewProgram(model{
 		spinner: appSpinner,
 		children: []tea.Model{
-			vpn.NewVpnModel(appSpinner),
+			vpn.NewVpnModel(appSpinner, vpn.NetworkManagerConnexion{"hydra"}),
 			hosts.NewHostSelectorModel(
 				appSpinner,
 				discovery.Discovery{

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type HostSelectorModel struct {
+type model struct {
 	tea.Model
 	spinner        *spinner.Model
 	error          error
@@ -25,8 +25,8 @@ type HostSelectorModel struct {
 	discovery discovery.Discovery
 }
 
-func NewHostSelectorModel(s *spinner.Model, discoveryStrategy discovery.Discovery) HostSelectorModel {
-	return HostSelectorModel{
+func NewHostSelectorModel(s *spinner.Model, discoveryStrategy discovery.Discovery) tea.Model {
+	return model{
 		spinner:   s,
 		hosts:     list.New([]list.Item{}, list.NewDefaultDelegate(), 30, 16),
 		discovery: discoveryStrategy,
@@ -45,7 +45,7 @@ func startSshConnection(host discovery.Host) tea.Cmd {
 	})
 }
 
-func (m HostSelectorModel) Init() tea.Cmd {
+func (m model) Init() tea.Cmd {
 	return m.listHostsInNetworkFromCache
 }
 
@@ -59,13 +59,13 @@ func WithDelay(duration time.Duration, msg tea.Msg) tea.Cmd {
 type StartDiscoveryMsg struct {
 }
 
-func (m HostSelectorModel) onConnectionEstablished() (tea.Model, tea.Cmd) {
+func (m model) onConnectionEstablished() (tea.Model, tea.Cmd) {
 	m.hostsFetching = true
 	m.readyToConnect = true
 	return m, m.listHostsInNetwork
 }
 
-func (m HostSelectorModel) onHostSelected() (tea.Model, tea.Cmd) {
+func (m model) onHostSelected() (tea.Model, tea.Cmd) {
 	if m.hostsFetched {
 		i, ok := m.hosts.SelectedItem().(discovery.Host)
 		if ok {
@@ -76,7 +76,7 @@ func (m HostSelectorModel) onHostSelected() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m HostSelectorModel) onListHostsResponse(msg discovery.ListHostsResponse) (tea.Model, tea.Cmd) {
+func (m model) onListHostsResponse(msg discovery.ListHostsResponse) (tea.Model, tea.Cmd) {
 	if msg.Err != nil {
 		m.error = msg.Err
 		return m, nil
@@ -92,12 +92,12 @@ func (m HostSelectorModel) onListHostsResponse(msg discovery.ListHostsResponse) 
 	return m, nil
 }
 
-func (m HostSelectorModel) onSshConnectionFinishedMsg(msg SshConnectionFinishedMsg) (tea.Model, tea.Cmd) {
+func (m model) onSshConnectionFinishedMsg(msg SshConnectionFinishedMsg) (tea.Model, tea.Cmd) {
 	m.error = msg.err
 	return m, nil
 }
 
-func (m HostSelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -127,7 +127,7 @@ func (m HostSelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m HostSelectorModel) View() string {
+func (m model) View() string {
 	buff := ""
 
 	if m.error != nil {

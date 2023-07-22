@@ -15,25 +15,27 @@ const (
 	Connecting       ConnectionStatus = iota
 )
 
-type VpnModel struct {
+type model struct {
+	connexion        Connection
 	connectionStatus ConnectionStatus
 	spinner          *spinner.Model
 }
 
-func NewVpnModel(s *spinner.Model) VpnModel {
-	return VpnModel{
+func NewVpnModel(s *spinner.Model, c Connection) tea.Model {
+	return model{
 		connectionStatus: Connecting,
 		spinner:          s,
+		connexion:        c,
 	}
 }
 
 type ConnectionEstablished struct{}
 
-func (m VpnModel) Init() tea.Cmd {
-	return ensureConnectedToVpn
+func (m model) Init() tea.Cmd {
+	return m.ensureConnectedToVpn
 }
 
-func (m VpnModel) onConnectionStatus(msg ConnectionStatus) (tea.Model, tea.Cmd) {
+func (m model) onConnectionStatus(msg ConnectionStatus) (tea.Model, tea.Cmd) {
 	m.connectionStatus = msg
 	if msg == ConnectionFailed {
 		return m, tea.Quit
@@ -47,7 +49,7 @@ func (m VpnModel) onConnectionStatus(msg ConnectionStatus) (tea.Model, tea.Cmd) 
 	return m, nil
 }
 
-func (m VpnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ConnectionStatus:
 		return m.onConnectionStatus(msg)
@@ -55,25 +57,18 @@ func (m VpnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m VpnModel) View() string {
+func (m model) View() string {
 	buff := ""
 
 	loadingPrefix := fmt.Sprintf("  %v", m.spinner.View())
 	defaultPrefix := "    "
 
 	if m.connectionStatus == Connecting {
-		return buff + fmt.Sprintf("%vConnecting to %v\n\n", loadingPrefix, colors.InfoKeyword(VpnName))
+		return buff + fmt.Sprintf("%vConnecting to %v\n\n", loadingPrefix, colors.InfoKeyword(m.connexion.Name()))
 	}
 	if m.connectionStatus == ConnectionFailed {
-		return buff + fmt.Sprintf("%vFail to connect to %v\n\n", defaultPrefix, colors.ErrorKeyword(VpnName))
+		return buff + fmt.Sprintf("%vFail to connect to %v\n\n", defaultPrefix, colors.ErrorKeyword(m.connexion.Name()))
 	}
 
-	return buff + fmt.Sprintf("%vConnection to %v established\n\n", defaultPrefix, colors.SuccessKeyword(VpnName))
-}
-
-func ensureConnectedToVpn() tea.Msg {
-	if err := EnsureConnectedToVpn(); err != nil {
-		return ConnectionFailed
-	}
-	return Connected
+	return buff + fmt.Sprintf("%vConnection to %v established\n\n", defaultPrefix, colors.SuccessKeyword(m.connexion.Name()))
 }
